@@ -1,0 +1,22 @@
+.boxContainer {
+    position: fixed;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    width: 400px;
+    height: 300px;
+    z-index: 10;
+    pointer-events: none;
+    /* allow children to handle events */
+}
+
+.boxImg {
+    width: 100%;
+    height: auto;
+    display: block;
+    pointer-events: none;
+}
+
+.boxContainer>div {
+    pointer-events: auto;
+}

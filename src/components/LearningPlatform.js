@@ -5,9 +5,9 @@ import Token from './Token';
 import VoiceInput from './VoiceInput';
 
 const CHARACTERS = [
-    { id: 'emma', name: 'Princess Emma', emoji: '👸' },
-    { id: 'olivia', name: 'Olivia', emoji: '🧒' },
-    { id: 'liam', name: 'Liam', emoji: '👦' },
+    { id: 'emma', name: 'Princess Emma', img: '/assets/princess-emma.png' },
+    { id: 'olivia', name: 'Olivia', img: '/assets/olivia.png' },
+    { id: 'liam', name: 'Liam', img: '/assets/liam.png' },
 ];
 
 const SUBJECTS = [
@@ -253,61 +253,69 @@ function LearningPlatform({ userLevels, generateExperience }) {
             </motion.p>
 
             {/* Character Tokens - Left Side */}
-            <div className="absolute left-8 top-1/2 -translate-y-1/2 flex flex-col gap-6">
+            <div className="absolute left-8 top-1/2 transform -translate-y-1/2 flex flex-col items-center gap-6">
                 {CHARACTERS.map((char) => (
-                    <Token
-                        key={char.id}
-                        {...char}
-                        type="character"
-                    />
+                    <Token key={char.id} {...char} type="character" />
                 ))}
             </div>
 
             {/* Subject Tokens - Right Side */}
-            <div className="absolute right-8 top-1/2 -translate-y-1/2 flex flex-col gap-6">
+            <div className="absolute right-8 top-1/2 transform -translate-y-1/2 flex flex-col items-center gap-6">
                 {SUBJECTS.map((subj) => (
-                    <Token
-                        key={subj.id}
-                        {...subj}
-                        type="subject"
-                    />
+                    <Token key={subj.id} {...subj} type="subject" />
                 ))}
             </div>
+
 
             {/* Platform */}
             <motion.div
                 initial={{ scale: 0.9, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
-                className="bg-white rounded-3xl p-8 shadow-2xl relative mt-auto mb-16"
+                className="relative mt-auto mb-16 w-[285px] h-[500px] rounded-3xl  bg-cover bg-center"
+                style={{
+                    backgroundImage: selectedMode === 'game' ? "url('/assets/boxgame.png')" :
+                        selectedMode === 'learn' ? "url('/assets/boxlearn.png')" :
+                            "url('/assets/box.png')"
+                }}
             >
-                <div className="flex gap-12 mb-8">
-                    <DropZone type="character" onDrop={setCharacter} label="Character">
-                        {character && <Token {...character} type="character" />}
-                    </DropZone>
-                    <DropZone type="subject" onDrop={setSubject} label="Category">
-                        {subject && <Token {...subject} type="subject" />}
-                    </DropZone>
+                <div className="flex gap-1 mb-14 ml-3">
+                    {/* Character */}
+                    <div className="flex flex-col items-center">
+                        <span className="mb-2 text-black text-sm font-semibold">Character</span>
+                        <DropZone type="character" onDrop={setCharacter}>
+                            {character && <Token {...character} type="character" />}
+                        </DropZone>
+                    </div>
+
+                    {/* Category */}
+                    <div className="flex flex-col items-center">
+                        <span className="mb-2 text-black text-sm font-semibold">Category</span>
+                        <DropZone type="subject" onDrop={setSubject}>
+                            {subject && <Token {...subject} type="subject" />}
+                        </DropZone>
+                    </div>
                 </div>
+
 
                 {/* Mode Selection Buttons */}
                 <div className="flex gap-4 justify-center mb-6">
                     <button
                         onClick={() => setSelectedMode('game')}
-                        className={`px-6 py-2 rounded-full transition-all duration-200
-                          ${selectedMode === 'game'
+                        className={`px-8 py-15 rounded-full transition-all duration-200 opacity-0
+        ${selectedMode === 'game'
                                 ? 'bg-sky-400 text-white shadow-lg scale-105'
                                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}
-                          shadow-md hover:shadow-lg transform hover:-translate-y-0.5`}
+        shadow-md hover:shadow-lg transform hover:-translate-y-0.5`}
                     >
                         Game
                     </button>
                     <button
                         onClick={() => setSelectedMode('learn')}
-                        className={`px-6 py-2 rounded-full transition-all duration-200
-                          ${selectedMode === 'learn'
+                        className={`px-8 py-14 rounded-full transition-all duration-200 opacity-0
+        ${selectedMode === 'learn'
                                 ? 'bg-emerald-400 text-white shadow-lg scale-105'
                                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}
-                          shadow-md hover:shadow-lg transform hover:-translate-y-0.5`}
+        shadow-md hover:shadow-lg transform hover:-translate-y-0.5`}
                     >
                         Learn
                     </button>
@@ -319,20 +327,38 @@ function LearningPlatform({ userLevels, generateExperience }) {
                         onClick={handleGenerate}
                         disabled={!isGoButtonEnabled}
                         className={`px-8 py-3 rounded-full text-lg font-medium transition-all duration-200
-                          ${isGoButtonEnabled
+        ${isGoButtonEnabled
                                 ? 'bg-gradient-to-r from-sky-400 to-emerald-400 text-white shadow-lg hover:shadow-xl'
                                 : 'bg-gray-100 text-gray-400 cursor-not-allowed'}
-                          transform hover:-translate-y-0.5`}
+        transform hover:-translate-y-0.5`}
                     >
                         {isLoading ? (
                             <span className="flex items-center gap-2">
-                                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                <svg
+                                    className="animate-spin h-5 w-5 text-white"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <circle
+                                        className="opacity-25"
+                                        cx="12"
+                                        cy="12"
+                                        r="10"
+                                        stroke="currentColor"
+                                        strokeWidth="4"
+                                    ></circle>
+                                    <path
+                                        className="opacity-75"
+                                        fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                    ></path>
                                 </svg>
                                 Generating...
                             </span>
-                        ) : 'Go!'}
+                        ) : (
+                            'Go!'
+                        )}
                     </button>
                 </div>
 
@@ -343,8 +369,8 @@ function LearningPlatform({ userLevels, generateExperience }) {
                         animate={{ opacity: 1, scale: 1 }}
                         onClick={handleReset}
                         className="absolute -top-4 -right-4 w-8 h-8 bg-white rounded-full shadow-lg
-                          flex items-center justify-center text-gray-600 hover:text-gray-800
-                          hover:bg-gray-50 transition-colors"
+        flex items-center justify-center text-gray-600 hover:text-gray-800
+        hover:bg-gray-50 transition-colors"
                     >
                         ↺
                     </motion.button>

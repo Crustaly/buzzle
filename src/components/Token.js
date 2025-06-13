@@ -2,10 +2,10 @@ import React from 'react';
 import { useDrag } from 'react-dnd';
 import { motion } from 'framer-motion';
 
-function Token({ id, name, emoji, type }) {
+function Token({ id, name, img, type }) {
     const [{ isDragging }, drag] = useDrag(() => ({
         type: type,
-        item: { id, name, emoji, type },
+        item: { id, name, img, type },
         collect: (monitor) => ({
             isDragging: !!monitor.isDragging(),
         }),
@@ -20,18 +20,17 @@ function Token({ id, name, emoji, type }) {
             whileTap={{ scale: 0.9 }}
             className="flex flex-col items-center"
         >
-            <div
-                className={`w-16 h-16 rounded-full bg-white shadow-lg flex items-center justify-center
-        cursor-move select-none text-3xl
-        ${isDragging ? 'opacity-50' : 'opacity-100'}
-        transition-all duration-200
-        hover:shadow-xl`}
-            >
-                {emoji}
-            </div>
-            <span className="mt-2 text-xs font-medium text-gray-600 max-w-[80px] text-center">
+            <span className="mb-2 text-xs font-medium text-gray-600 max-w-[80px] text-center">
                 {name}
             </span>
+            <div
+                className={`w-30 h-24 flex items-center justify-center
+                cursor-move select-none
+                ${isDragging ? 'opacity-50' : 'opacity-100'}
+                transition-all duration-200`}
+            >
+                <img src={img} alt={name} className="w-full h-full object-contain" />
+            </div>
         </motion.div>
     );
 }
