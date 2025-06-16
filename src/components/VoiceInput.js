@@ -1,90 +1,102 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 
-const VoiceInput = ({ onTranscriptComplete, isListening, onListeningChange }) => {
+const VoiceInput = ({ onResult, onListeningChange, isAnswerTime = true, isAudioPlaying = false }) => {
+    const [isListening, setIsListening] = useState(false);
     const [transcript, setTranscript] = useState('');
-    const transcriptRef = useRef('');
-    const [recognition, setRecognition] = useState(null);
+    const recognitionRef = useRef(null);
+    const lastToggleTime = useRef(0);
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (SpeechRecognition) {
-                const recognition = new SpeechRecognition();
-                recognition.continuous = true;
-                recognition.interimResults = true;
-                recognition.lang = 'en-US';
+        // Initialize speech recognition
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            recognitionRef.current = new SpeechRecognition();
+            recognitionRef.current.continuous = false;
+            recognitionRef.current.interimResults = false;
 
-                recognition.onresult = (event) => {
-                    const current = event.resultIndex;
-                    const transcript = event.results[current][0].transcript;
-                    setTranscript(transcript);
-                    transcriptRef.current = transcript;
-                };
+            recognitionRef.current.onresult = (event) => {
+                const result = event.results[0][0].transcript;
+                setTranscript(result);
+                onResult(result);
+            };
 
-                recognition.onend = () => {
-                    if (isListening) {
-                        recognition.start();
-                    } else {
-                        onTranscriptComplete(transcriptRef.current);
-                    }
-                };
+            recognitionRef.current.onend = () => {
+                setIsListening(false);
+                onListeningChange(false);
+            };
 
-                setRecognition(recognition);
-            }
+            recognitionRef.current.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                setIsListening(false);
+                onListeningChange(false);
+            };
         }
-    }, []);
+
+        return () => {
+            if (recognitionRef.current) {
+                recognitionRef.current.stop();
+            }
+        };
+    }, [onResult, onListeningChange]);
 
     const toggleListening = () => {
-        if (!recognition) return;
+        // Prevent rapid toggling
+        const now = Date.now();
+        if (now - lastToggleTime.current < 1000) return;
+        lastToggleTime.current = now;
 
-        if (isListening) {
-            recognition.stop();
-            onListeningChange(false);
-        } else {
-            setTranscript('');
-            recognition.start();
-            onListeningChange(true);
+        if (!isAnswerTime || isAudioPlaying) return;
+
+        if (!isListening && recognitionRef.current) {
+            try {
+                // Set states before starting recognition
+                setIsListening(true);
+                onListeningChange(true);
+                setTranscript('');
+
+                // Small delay to ensure states are updated
+                setTimeout(() => {
+                    try {
+                        recognitionRef.current.start();
+                    } catch (error) {
+                        console.error('Error starting recognition:', error);
+                        setIsListening(false);
+                        onListeningChange(false);
+                    }
+                }, 100);
+            } catch (error) {
+                console.error('Error in toggle listening:', error);
+                setIsListening(false);
+                onListeningChange(false);
+            }
+        } else if (recognitionRef.current) {
+            try {
+                recognitionRef.current.stop();
+            } catch (error) {
+                console.error('Error stopping recognition:', error);
+            }
         }
     };
 
     return (
-        <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-col items-center">
             <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
                 onClick={toggleListening}
-                className={`w-16 h-16 rounded-full flex items-center justify-center
-                    ${isListening
-                        ? 'bg-green-500 hover:bg-green-600'
-                        : 'bg-red-500 hover:bg-red-600'
-                    } text-white shadow-lg transition-colors`}
+                className={`w-24 h-24 rounded-full flex items-center justify-center shadow-lg
+                    ${isListening ? 'bg-red-500' : isAnswerTime && !isAudioPlaying ? 'bg-blue-500' : 'bg-gray-400'} 
+                    transition-transform ${!isAnswerTime || isAudioPlaying ? 'cursor-not-allowed' : 'hover:scale-105'}`}
+                whileTap={{ scale: isAnswerTime && !isAudioPlaying ? 0.95 : 1 }}
+                disabled={!isAnswerTime || isAudioPlaying}
             >
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-8 w-8"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
-                    />
-                </svg>
+                <div className="text-white text-4xl">
+                    {isListening ? '⏹' : '🎤'}
+                </div>
             </motion.button>
-
-            {isListening && (
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-gray-600 text-center"
-                >
-                    <p className="font-medium">Listening...</p>
-                    <p className="text-sm mt-1">{transcript || 'Speak now...'}</p>
-                </motion.div>
+            {transcript && (
+                <div className="mt-4 text-lg text-center max-w-md">
+                    {transcript}
+                </div>
             )}
         </div>
     );

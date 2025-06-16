@@ -26,7 +26,7 @@ function App() {
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="min-h-screen bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-cover bg-center" style={{ backgroundImage: "url('/assets/background.png')" }}>
         <LearningPlatform
           userLevels={userLevels}
           generateExperience={generateExperience}
