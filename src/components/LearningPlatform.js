@@ -141,11 +141,37 @@ function LearningPlatform({ userLevels, generateExperience }) {
             audioRef.current.pause();
             audioRef.current.currentTime = 0;
         }
-        const audio = new Audio(`data:audio/mp3;base64,${audioUrl}`);
+
+        // Create audio element with proper MIME type
+        const audio = new Audio();
+        audio.src = `data:audio/mpeg;base64,${audioUrl}`;
+        audio.type = 'audio/mpeg';
+
+        // Add error handling
+        audio.onerror = (e) => {
+            console.error('Audio playback error:', e);
+            if (onEnd) onEnd();
+        };
+
         audioRef.current = audio;
-        audio.volume = 1.0; // Full volume for speech
         setIsAudioPlaying(true);
-        audio.play().catch(console.error);
+
+        // Use play() with a promise to handle autoplay restrictions
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+            playPromise
+                .then(() => console.log('✅ Played audio from base64'))
+                .catch(error => {
+                    console.error('❌ Failed to play audio from base64:', error);
+                    // Try to play again after user interaction
+                    document.addEventListener('click', () => {
+                        audio.play()
+                            .then(() => console.log('✅ Played audio from base64 after click'))
+                            .catch(err => console.error('❌ Failed to play audio from base64 after click:', err));
+                    }, { once: true });
+                });
+        }
+
         audio.onended = () => {
             setIsAudioPlaying(false);
             if (onEnd) onEnd();
@@ -154,9 +180,27 @@ function LearningPlatform({ userLevels, generateExperience }) {
 
     // Play sound effect
     const playSoundEffect = (filename) => {
+        console.log(`Trying to play /assets/${filename}`);
         const audio = new Audio(`/assets/${filename}`);
-        audio.volume = 0.8; // Slightly reduced volume for sound effects
-        audio.play().catch(console.error);
+        audio.volume = 0.8;
+
+        // Add error handling
+        audio.onerror = (e) => {
+            console.error(`❌ Error loading /assets/${filename}:`, e);
+        };
+
+        // Use play() with a promise to handle autoplay restrictions
+        audio.play()
+            .then(() => console.log(`✅ Played ${filename}`))
+            .catch(err => {
+                console.error(`❌ Failed to play ${filename}`, err);
+                // Try to play again after user interaction
+                document.addEventListener('click', () => {
+                    audio.play()
+                        .then(() => console.log(`✅ Played ${filename} after click`))
+                        .catch(error => console.error(`❌ Failed to play ${filename} after click:`, error));
+                }, { once: true });
+            });
     };
 
     // Start lobby music

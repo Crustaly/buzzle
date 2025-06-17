@@ -200,13 +200,14 @@ def lambda_handler(event, context):
 
 
 # Build HTTP response
-def respond(status, body):
+def respond(status_code, body):
     return {
-        "statusCode": status,
+        "statusCode": status_code,
         "headers": {
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Headers": "Content-Type",
-            "Access-Control-Allow-Methods": "POST,OPTIONS",
+            "Access-Control-Allow-Methods": "OPTIONS,POST",
+            "Content-Type": "application/json",
         },
         "body": json.dumps(body),
     }
