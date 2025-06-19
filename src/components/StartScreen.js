@@ -21,11 +21,27 @@ const StartScreen = ({ onStart }) => {
             <div className="absolute inset-0 flex items-end justify-center">
                 <motion.button
                     onClick={playStartSound}
-                    className="mb-40 bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-10 px-12 rounded-full shadow-lg text-4xl font-cartoon"
-                    animate={{ y: [0, -10, 0] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    className="mb-8"
+                    initial={{ y: 100, opacity: 0 }}
+                    animate={{
+                        y: [0, -10, 0],
+                        opacity: 1,
+                        transition: {
+                            y: {
+                                duration: 2,
+                                repeat: Infinity,
+                                ease: "easeInOut"
+                            },
+                            opacity: {
+                                duration: 0.8,
+                                ease: "easeOut"
+                            }
+                        }
+                    }}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
                 >
-                    Start! &gt;&gt;&gt;
+                    <img src="/assets/startbutton.png" alt="Start Button" className="w-48 h-auto" />
                 </motion.button>
             </div>
         </div>
