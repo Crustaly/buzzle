@@ -10,6 +10,9 @@ polly = boto3.client("polly")
 # Map characters to Polly voices
 VOICE_MAP = {"Princess Emma": "Ruth", "Olivia": "Danielle", "Liam": "Matthew"}
 
+# If there is a list or check for characters, add 'Oliver' to it. For example:
+# ALLOWED_CHARACTERS = ['Princess Emma', 'Olivia', 'Liam', 'Oliver']
+
 
 # Generate Polly audio and return base64-encoded string
 def get_polly_audio(text, voice_id):

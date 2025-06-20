@@ -4,7 +4,11 @@ module.exports = {
     "./src/**/*.{js,jsx,ts,tsx}", // This is the key line!
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        'huninn': ['"Huninn"', 'sans-serif'],
+      },
+    },
   },
   plugins: [],
 };

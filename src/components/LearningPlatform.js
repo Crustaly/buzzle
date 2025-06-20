@@ -9,12 +9,19 @@ const CHARACTERS = [
     { id: 'emma', name: 'Princess Emma', img: '/assets/princess-emma.png' },
     { id: 'olivia', name: 'Olivia', img: '/assets/olivia.png' },
     { id: 'liam', name: 'Liam', img: '/assets/liam.png' },
+    { id: 'oliver', name: 'Oliver', img: '/assets/oliver.png' },
 ];
 
 const SUBJECTS = [
     { id: 'addition', name: 'Addition', img: '/assets/addition.png' },
     { id: 'language', name: 'Language', img: '/assets/language.png' },
     { id: 'music', name: 'Music', img: '/assets/music.png' },
+    { id: 'foods', name: 'Foods', img: '/assets/foods.png' },
+    { id: 'geography', name: 'Geography', img: '/assets/geography.png' },
+    { id: 'money', name: 'Money', img: '/assets/money.png' },
+    { id: 'science', name: 'Science', img: '/assets/science.png' },
+    { id: 'subtraction', name: 'Subtraction', img: '/assets/subtraction.png' },
+    { id: 'weather', name: 'Weather', img: '/assets/weather.png' },
 ];
 
 // TODO: Replace with your actual Lambda endpoint
@@ -40,13 +47,14 @@ const DropZone = ({ type, onDrop, children, label, isFilled }) => {
                 {children}
             </div>
             {!isFilled && (
-                <span className="mt-2 text-sm font-medium text-gray-600">{label}</span>
+                <span className="mt-2 text-sm huninn-regular text-gray-600">{label}</span>
             )}
         </div>
     );
 };
 
-const InstructionStep = ({ step, position }) => {
+const InstructionStep = ({ step, position, size = '14rem' }) => {
+
     const [imageError, setImageError] = useState(false);
 
     return (
@@ -59,7 +67,8 @@ const InstructionStep = ({ step, position }) => {
             <img
                 src={`/assets/step${step}.png`}
                 alt={`Step ${step}`}
-                className="w-[32rem] h-auto"
+                style={{ width: size, height: 'auto' }}
+
                 onError={(e) => {
                     console.error(`Failed to load step ${step} image`);
                     setImageError(true);
@@ -75,10 +84,20 @@ const InstructionStep = ({ step, position }) => {
     );
 };
 
+function isMobileDevice() {
+    return /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+function isPortrait() {
+    return window.innerHeight > window.innerWidth;
+}
+
 function LearningPlatform({ userLevels, generateExperience }) {
     const [showStartScreen, setShowStartScreen] = useState(true);
+    const [showIntroVideo, setShowIntroVideo] = useState(false);
     const [showLoadingScreen, setShowLoadingScreen] = useState(false);
     const [showVoiceInput, setShowVoiceInput] = useState(false);
+    const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
     const [character, setCharacter] = useState(null);
     const [subject, setSubject] = useState(null);
     const [selectedMode, setSelectedMode] = useState(null);
@@ -95,6 +114,44 @@ function LearningPlatform({ userLevels, generateExperience }) {
     const lobbyMusicRef = useRef(null);
     const generatingMusicRef = useRef(null);
     const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+    const [showRotate, setShowRotate] = useState(false);
+    const introVideoRef = useRef(null);
+
+    // Check permissions on component mount
+    useEffect(() => {
+        const checkInitialPermissions = async () => {
+            try {
+                // Check microphone permission
+                const permissions = await navigator.permissions.query({ name: 'microphone' });
+                if (permissions.state === 'denied' || permissions.state === 'prompt') {
+                    setShowPermissionPrompt(true);
+                    return;
+                }
+
+                // Test sound functionality
+                try {
+                    const testAudio = new Audio('/assets/pop.mp3');
+                    testAudio.volume = 0.1;
+                    await testAudio.play();
+                    testAudio.pause();
+                    console.log('Sound test passed');
+                } catch (soundError) {
+                    console.log('Sound test failed, showing permission prompt');
+                    setShowPermissionPrompt(true);
+                    return;
+                }
+
+                console.log('All permissions and sound working correctly');
+            } catch (error) {
+                console.log('Permission check not supported, showing prompt anyway...');
+                setShowPermissionPrompt(true);
+            }
+        };
+
+        // Check permissions after a short delay to ensure component is fully mounted
+        const timer = setTimeout(checkInitialPermissions, 1000);
+        return () => clearTimeout(timer);
+    }, []);
 
     // Reset everything when component mounts
     React.useEffect(() => {
@@ -112,6 +169,51 @@ function LearningPlatform({ userLevels, generateExperience }) {
     React.useEffect(() => {
         console.log('Mode changed to:', selectedMode);
     }, [selectedMode]);
+
+    useEffect(() => {
+        function checkOrientation() {
+            if (isMobileDevice() && isPortrait()) {
+                setShowRotate(true);
+            } else {
+                setShowRotate(false);
+            }
+        }
+        checkOrientation();
+        window.addEventListener('resize', checkOrientation);
+        window.addEventListener('orientationchange', checkOrientation);
+        return () => {
+            window.removeEventListener('resize', checkOrientation);
+            window.removeEventListener('orientationchange', checkOrientation);
+        };
+    }, []);
+
+    // Request microphone and sound permissions
+    const requestPermissions = async () => {
+        try {
+            // Request microphone permission
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            stream.getTracks().forEach(track => track.stop()); // Stop the stream after getting permission
+
+            // Test audio playback
+            const testAudio = new Audio('/assets/pop.mp3');
+            testAudio.volume = 0.1;
+            await testAudio.play();
+            testAudio.pause();
+
+            setShowPermissionPrompt(false);
+            console.log('Permissions granted successfully');
+        } catch (error) {
+            console.error('Permission request failed:', error);
+            alert('Please enable microphone and sound in your browser settings to enjoy the full experience.');
+        }
+    };
+
+    // Handle intro video end
+    const handleIntroVideoEnd = () => {
+        setShowIntroVideo(false);
+        setShowStartScreen(false);
+        playSoundEffect('pop.mp3');
+    };
 
     // Audio fade out function
     const fadeOutAudio = (audio, duration = 1000) => {
@@ -205,7 +307,7 @@ function LearningPlatform({ userLevels, generateExperience }) {
 
     // Start lobby music
     useEffect(() => {
-        const shouldPlayLobbyMusic = showStartScreen || (!showStartScreen && !showLoadingScreen && !showVoiceInput);
+        const shouldPlayLobbyMusic = showStartScreen || (!showIntroVideo && !showLoadingScreen && !showVoiceInput);
 
         if (shouldPlayLobbyMusic) {
             lobbyMusicRef.current = new Audio('/assets/lobbymusic.mp3');
@@ -220,16 +322,15 @@ function LearningPlatform({ userLevels, generateExperience }) {
                 lobbyMusicRef.current = null;
             }
         };
-    }, [showStartScreen, showLoadingScreen, showVoiceInput]);
+    }, [showStartScreen, showIntroVideo, showLoadingScreen, showVoiceInput]);
 
     const handleStart = () => {
         if (lobbyMusicRef.current) {
             fadeOutAudio(lobbyMusicRef.current);
         }
         playSoundEffect('start.mp3'); // Optional: use a calm start sound
+        setShowIntroVideo(true);
         setShowStartScreen(false);
-        playSoundEffect('pop.mp3');
-
     };
 
     const handleCharacterDrop = (char) => {
@@ -258,6 +359,20 @@ function LearningPlatform({ userLevels, generateExperience }) {
 
     const handleGenerate = async () => {
         if (!character || !subject || !selectedMode) return;
+
+        // Check if it's a game and show permission prompt if needed
+        if (selectedMode === 'game') {
+            try {
+                // Check microphone permission
+                const permissions = await navigator.permissions.query({ name: 'microphone' });
+                if (permissions.state === 'denied') {
+                    setShowPermissionPrompt(true);
+                    return;
+                }
+            } catch (error) {
+                console.log('Permission check not supported, proceeding...');
+            }
+        }
 
         playSoundEffect('shine.mp3'); // Correct placement!
         setShowLoadingScreen(true);
@@ -295,16 +410,30 @@ function LearningPlatform({ userLevels, generateExperience }) {
                 playAudio(data.intro_audio, () => {
                     playSoundEffect('start.mp3');
                     setTimeout(() => {
-                        if (data.questions?.[0]?.audio) {
-                            playAudio(data.questions[0].audio);
-                        }
+                        // Add 1 second break before playing first question
+                        setTimeout(() => {
+                            if (data.questions?.[0]?.audio) {
+                                playAudio(data.questions[0].audio);
+                            }
+                        }, 1000);
                     }, 1000);
                 });
             } else if (selectedMode === 'learn' && data.audio) {
                 setTimeout(() => {
                     playAudio(data.audio, () => {
-                        // Force reload after learn mode ends
-                        window.location.reload(true);
+                        // Go back to game selection screen
+                        setShowVoiceInput(false);
+                        setShowStartScreen(false);
+                        setShowIntroVideo(false);
+                        setExperience(null);
+                        setCurrentQuestionIndex(0);
+                        setCorrectAnswers(0);
+                        setFeedback(null);
+                        setIsAudioPlaying(false);
+                        setCharacter(null);
+                        setSubject(null);
+                        setSelectedMode(null);
+                        setCurrentStep(1);
                     });
                 }, 1000);
             }
@@ -396,9 +525,11 @@ function LearningPlatform({ userLevels, generateExperience }) {
                             const nextIndex = currentQuestionIndex + 1;
                             setCurrentQuestionIndex(nextIndex);
                             const nextQuestion = experience.questions[nextIndex];
-                            if (nextQuestion?.audio) {
-                                playAudio(nextQuestion.audio);
-                            }
+                            setTimeout(() => {
+                                if (nextQuestion?.audio) {
+                                    playAudio(nextQuestion.audio);
+                                }
+                            }, 1000);
                         } else {
                             // Last question completed, play outro after delay
                             setTimeout(() => {
@@ -414,13 +545,35 @@ function LearningPlatform({ userLevels, generateExperience }) {
                                 if (outroAudio) {
                                     playAudio(outroAudio, () => {
                                         playSoundEffect('home.mp3');
-                                        // Force reload after game ends
-                                        window.location.reload(true);
+                                        // Go back to game selection screen
+                                        setShowVoiceInput(false);
+                                        setShowStartScreen(false);
+                                        setShowIntroVideo(false);
+                                        setExperience(null);
+                                        setCurrentQuestionIndex(0);
+                                        setCorrectAnswers(0);
+                                        setFeedback(null);
+                                        setIsAudioPlaying(false);
+                                        setCharacter(null);
+                                        setSubject(null);
+                                        setSelectedMode(null);
+                                        setCurrentStep(1);
                                     });
                                 } else {
                                     playSoundEffect('home.mp3');
-                                    // Force reload after game ends
-                                    window.location.reload(true);
+                                    // Go back to game selection screen
+                                    setShowVoiceInput(false);
+                                    setShowStartScreen(false);
+                                    setShowIntroVideo(false);
+                                    setExperience(null);
+                                    setCurrentQuestionIndex(0);
+                                    setCorrectAnswers(0);
+                                    setFeedback(null);
+                                    setIsAudioPlaying(false);
+                                    setCharacter(null);
+                                    setSubject(null);
+                                    setSelectedMode(null);
+                                    setCurrentStep(1);
                                 }
                             }, 1500);
                         }
@@ -434,9 +587,11 @@ function LearningPlatform({ userLevels, generateExperience }) {
                             const nextIndex = currentQuestionIndex + 1;
                             setCurrentQuestionIndex(nextIndex);
                             const nextQuestion = experience.questions[nextIndex];
-                            if (nextQuestion?.audio) {
-                                playAudio(nextQuestion.audio);
-                            }
+                            setTimeout(() => {
+                                if (nextQuestion?.audio) {
+                                    playAudio(nextQuestion.audio);
+                                }
+                            }, 1000);
                         } else {
                             // Last question completed, play outro after delay
                             setTimeout(() => {
@@ -452,13 +607,35 @@ function LearningPlatform({ userLevels, generateExperience }) {
                                 if (outroAudio) {
                                     playAudio(outroAudio, () => {
                                         playSoundEffect('home.mp3');
-                                        // Force reload after game ends
-                                        window.location.reload(true);
+                                        // Go back to game selection screen
+                                        setShowVoiceInput(false);
+                                        setShowStartScreen(false);
+                                        setShowIntroVideo(false);
+                                        setExperience(null);
+                                        setCurrentQuestionIndex(0);
+                                        setCorrectAnswers(0);
+                                        setFeedback(null);
+                                        setIsAudioPlaying(false);
+                                        setCharacter(null);
+                                        setSubject(null);
+                                        setSelectedMode(null);
+                                        setCurrentStep(1);
                                     });
                                 } else {
                                     playSoundEffect('home.mp3');
-                                    // Force reload after game ends
-                                    window.location.reload(true);
+                                    // Go back to game selection screen
+                                    setShowVoiceInput(false);
+                                    setShowStartScreen(false);
+                                    setShowIntroVideo(false);
+                                    setExperience(null);
+                                    setCurrentQuestionIndex(0);
+                                    setCorrectAnswers(0);
+                                    setFeedback(null);
+                                    setIsAudioPlaying(false);
+                                    setCharacter(null);
+                                    setSubject(null);
+                                    setSelectedMode(null);
+                                    setCurrentStep(1);
                                 }
                             }, 1500);
                         }
@@ -475,11 +652,7 @@ function LearningPlatform({ userLevels, generateExperience }) {
         setCharacter(null);
         setSubject(null);
         setSelectedMode(null);
-        setExperience(null);
-        setError(null);
         setCurrentStep(1);
-        setShowVoiceInput(false);
-        setShowStartScreen(true);
     };
 
     const isGoButtonEnabled = character && subject && selectedMode && !isLoading;
@@ -512,6 +685,54 @@ function LearningPlatform({ userLevels, generateExperience }) {
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-transparent">
+            {showRotate && (
+                <div className="fixed inset-0 z-[99999] bg-black bg-opacity-80 flex flex-col items-center justify-center">
+                    <div className="text-white text-3xl huninn-regular p-8 rounded-2xl bg-black bg-opacity-70 border-4 border-yellow-300 shadow-2xl">
+                        Please Rotate Your Device
+                    </div>
+                </div>
+            )}
+            {/* Permission Prompt */}
+            {showPermissionPrompt && (
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-xl text-center max-w-md shadow-lg">
+                        <h2 className="text-xl huninn-regular mb-2">Welcome to Buzzle!</h2>
+                        <p className="mb-4 huninn-regular">To enjoy the full experience, please enable your microphone and turn on your sound. We'll test both to make sure they're working properly.</p>
+                        <button
+                            onClick={requestPermissions}
+                            className="bg-yellow-400 hover:bg-yellow-500 text-black px-4 py-2 rounded-full huninn-regular"
+                        >
+                            Enable Microphone & Sound
+                        </button>
+                    </div>
+                </div>
+            )}
+            {/* Intro Video */}
+            <AnimatePresence>
+                {showIntroVideo && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 w-full h-full z-[9999] bg-black"
+                    >
+                        <video
+                            ref={introVideoRef}
+                            className="w-full h-full object-cover"
+                            autoPlay
+                            muted={false}
+                            onEnded={handleIntroVideoEnd}
+                            onError={(e) => {
+                                console.error('Video playback error:', e);
+                                handleIntroVideoEnd();
+                            }}
+                        >
+                            <source src="/assets/intro.mp4" type="video/mp4" />
+                            Your browser does not support the video tag.
+                        </video>
+                    </motion.div>
+                )}
+            </AnimatePresence>
             {/* Start Screen */}
             <AnimatePresence>
                 {showStartScreen && (
@@ -533,14 +754,15 @@ function LearningPlatform({ userLevels, generateExperience }) {
                             alt="Loading Background"
                             className="absolute inset-0 w-full h-full object-cover"
                         />
-                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ transform: 'translateY(200px)' }}>
+
                             <motion.div
                                 animate={{ rotate: 360 }}
                                 transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                                 className="w-16 h-16 border-4 border-yellow-400 border-t-transparent rounded-full mb-4"
                             />
-                            <div className="text-2xl font-cartoon text-white drop-shadow-lg">
-                                Generating your {selectedMode === 'game' ? 'game' : 'lesson'}...
+                            <div className="text-2xl huninn-regular text-black drop-shadow-lg mt-0">
+                                Generating your {selectedMode === 'game' ? 'game... (20 seconds)' : 'lesson... (10 seconds)'}
                             </div>
                         </div>
                     </motion.div>
@@ -555,7 +777,8 @@ function LearningPlatform({ userLevels, generateExperience }) {
                     onClick={() => {
                         // Reset all states
                         setShowVoiceInput(false);
-                        setShowStartScreen(true);
+                        setShowStartScreen(false);
+                        setShowIntroVideo(false);
                         setExperience(null);
                         setCurrentQuestionIndex(0);
                         setCorrectAnswers(0);
@@ -597,7 +820,7 @@ function LearningPlatform({ userLevels, generateExperience }) {
                         exit={{ opacity: 0 }}
                         className="fixed inset-0 w-full h-full flex flex-col items-center justify-center"
                     >
-                        <div className="text-2xl font-cartoon mb-8 text-center">
+                        <div className="text-2xl huninn-regular mb-8 text-center">
                             {selectedMode === 'game'
                                 ? experience.questions[currentQuestionIndex].text
                                 : experience.text}
@@ -615,34 +838,47 @@ function LearningPlatform({ userLevels, generateExperience }) {
 
             {/* Main Content */}
             <AnimatePresence>
-                {!showStartScreen && !showLoadingScreen && !showVoiceInput && (
+                {!showStartScreen && !showIntroVideo && !showLoadingScreen && !showVoiceInput && (
                     <>
                         {/* Instruction Steps */}
                         {currentStep === 1 && (
-                            <InstructionStep step={1} position="left-1 top-1/4" />
+                            <InstructionStep step={1} position="left-[350px] top-[60px]" size="13rem" />
                         )}
-                        {currentStep === 2 && (
-                            <InstructionStep step={2} position="right-3 top-1/4" />
+                        {currentStep === 2 && (<InstructionStep step={2} position="right-[380px] top-[15%]" size="11rem" />
                         )}
                         {currentStep === 3 && (
-                            <InstructionStep step={3} position="left-14 top-1/3" />
+                            <InstructionStep step={3} position="left-[290px] bottom-[20px]" size="14rem" />
                         )}
                         {currentStep === 4 && (
-                            <InstructionStep step={4} position="right-16 bottom-0" />
+                            <InstructionStep step={4} position="right-[210px] bottom-[21px]" size="20rem" />
                         )}
 
                         {/* Character Tokens - Left Side */}
-                        <div className="absolute left-8 top-1/2 transform -translate-y-1/2 flex flex-col items-center gap-6">
-                            {CHARACTERS.map((char) => (
-                                <Token key={char.id} {...char} type="character" />
-                            ))}
+                        <div className="absolute left-[32px] top-1/3 transform -translate-y-1/2">
+                            <div className="bg-[#fffde7] rounded-[2rem] shadow-xl px-6 py-4 w-[400px] h-[360px] flex flex-col items-center">
+                                <span className="huninn-regular text-2xl mb-4 border-b-4 border-black pb-1">Characters</span>
+                                <div className="grid grid-cols-2 gap-4 w-full justify-items-center">
+                                    {CHARACTERS.map((char) => (
+                                        <Token key={char.id} {...char} type="character" />
+                                    ))}
+                                </div>
+
+                            </div>
                         </div>
 
+
+
                         {/* Subject Tokens - Right Side */}
-                        <div className="absolute right-8 top-1/2 transform -translate-y-1/2 flex flex-col items-center gap-6">
-                            {SUBJECTS.map((subj) => (
-                                <Token key={subj.id} {...subj} type="subject" />
-                            ))}
+                        <div className="absolute right-[32px] top-1/3 transform -translate-y-1/2">
+                            <div className="bg-[#fffde7] rounded-[2rem] shadow-xl px-6 py-4 w-[400px] h-[360px] flex flex-col items-center">
+                                <span className="huninn-regular text-2xl mb-4 border-b-4 border-black pb-1">Subjects</span>
+                                <div className="grid grid-cols-3 gap-4 w-full justify-items-center overflow-y-auto flex-1" style={{ maxHeight: '240px' }}>
+                                    {SUBJECTS.map((subj) => (
+                                        <Token key={subj.id} {...subj} type="subject" />
+                                    ))}
+                                </div>
+                                {/* You can add a step arrow here if needed */}
+                            </div>
                         </div>
 
                         {/* Platform */}
@@ -659,7 +895,7 @@ function LearningPlatform({ userLevels, generateExperience }) {
                             <div className="flex gap-4 mb-0 ml-11">
                                 {/* Character */}
                                 <div className="flex flex-col items-center">
-                                    <span className="mb-0 text-black text-xl font-extrabold drop-shadow-md font-cartoon">
+                                    <span className="mb-0 text-black text-xl drop-shadow-md huninn-regular">
                                         Character
                                     </span>
 
@@ -679,7 +915,7 @@ function LearningPlatform({ userLevels, generateExperience }) {
                                 {/* Category to fix!*/}
 
                                 <div className="flex flex-col items-center">
-                                    <span className="mb-0 text-black text-xl font-extrabold drop-shadow-md font-cartoon">
+                                    <span className="mb-0 text-black text-xl drop-shadow-md huninn-regular">
                                         Subject
                                     </span>
 
@@ -723,21 +959,21 @@ function LearningPlatform({ userLevels, generateExperience }) {
                             </div>
 
                             {/* Go Button */}
-                            <div className="flex justify-center mt-[70px]">
+                            <div className="flex justify-center mt-[20px]">
 
                                 <button
                                     onClick={handleGenerate}
                                     disabled={!isGoButtonEnabled}
-                                    className={`px-8 py-3 rounded-full text-lg font-medium transition-all duration-200
+                                    className={`w-[220px] h-[90px] rounded-full text-3xl huninn-regular transition-all duration-200
             ${isGoButtonEnabled
-                                            ? 'bg-gradient-to-r from-sky-400 to-emerald-400 text-white shadow-lg hover:shadow-xl'
-                                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'}
-            transform hover:-translate-y-0.5`}
+                                            ? 'bg-red-600 text-white shadow-xl border-4 border-red-900 hover:bg-red-700 hover:scale-105'
+                                            : 'bg-gray-200 text-gray-400 border-4 border-gray-400 cursor-not-allowed'}
+            flex items-center justify-center`}
                                 >
                                     {isLoading ? (
                                         <span className="flex items-center gap-2">
                                             <svg
-                                                className="animate-spin h-5 w-5 text-white"
+                                                className="animate-spin h-7 w-7 text-white"
                                                 xmlns="http://www.w3.org/2000/svg"
                                                 fill="none"
                                                 viewBox="0 0 24 24"
@@ -788,14 +1024,14 @@ function LearningPlatform({ userLevels, generateExperience }) {
                                     exit={{ opacity: 0, y: 20 }}
                                     className="mt-8 bg-white rounded-xl p-6 shadow-lg max-w-md w-full"
                                 >
-                                    <h3 className="text-xl font-bold text-gray-800 mb-4">{experience.title}</h3>
+                                    <h3 className="text-xl huninn-regular text-gray-800 mb-4">{experience.title}</h3>
                                     <div className="space-y-4">
                                         {experience.questions.map((q, index) => (
                                             <div
                                                 key={index}
                                                 className={`bg-sky-50 p-4 rounded-lg ${index === currentQuestionIndex ? 'ring-2 ring-sky-400' : ''}`}
                                             >
-                                                <p className="font-medium text-gray-800 mb-2">Q: {q.question}</p>
+                                                <p className="huninn-regular text-gray-800 mb-2">Q: {q.question}</p>
                                                 {index === currentQuestionIndex ? (
                                                     <>
                                                         <div className="mt-4">
@@ -837,7 +1073,7 @@ function LearningPlatform({ userLevels, generateExperience }) {
                                     exit={{ opacity: 0, y: 20 }}
                                     className="mt-4 bg-red-50 text-red-600 px-4 py-2 rounded-lg max-w-md"
                                 >
-                                    <p className="font-medium">Error</p>
+                                    <p className="huninn-regular">Error</p>
                                     <p className="text-sm mt-1">{error}</p>
                                 </motion.div>
                             )}

@@ -29,7 +29,7 @@ function Token({ id, name, img, type }) {
             </motion.div>
 
             {/* Text below the image */}
-            <span className="mt-2 text-xs font-medium text-gray-600 max-w-[80px] text-center">
+            <span className="mt-2 text-xs huninn-regular text-gray-600 max-w-[80px] text-center">
                 {name}
             </span>
         </div>
